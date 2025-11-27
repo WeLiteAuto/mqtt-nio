@@ -48,7 +48,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     let logger: Logger
     
     /// `Lock` for making sure this class is thread safe.
-    private let lock = Lock()
+    private let lock = NIOLock()
     
     /// The connection with the broker.
     private var connection: MQTTConnection?
@@ -255,19 +255,24 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     
     /// Starts connecting to the broker indicating by the `configuration`.
     /// - Returns: An `EventLoopFuture` with the `MQTTConnectResponse` returned from the broker.
+    @available(*, deprecated, message: "Use async/await connect() instead")
     @discardableResult
     public func connect() -> EventLoopFuture<MQTTConnectResponse> {
-        return lock.withLock {
+        return _connectFuture()
+    }
+
+    func _connectFuture() -> EventLoopFuture<MQTTConnectResponse> {
+        lock.withLock {
             if let connection = connection {
                 return connectionEventLoop.flatSubmit {
                     connection.connectFuture
                 }
             }
-            
+
             // Update handler properties to match configuration
             requestHandler.version = _configuration.protocolVersion
             subscriptionsHandler.acknowledgementHandler = _configuration.acknowledgementHandler
-            
+
             let connection = MQTTConnection(
                 eventLoop: connectionEventLoop,
                 useNIOTS: useNIOTS,
@@ -278,7 +283,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
                 logger: logger
             )
             self.connection = connection
-            
+
             return connectionEventLoop.flatSubmit {
                 connection.connectFuture
             }
@@ -291,19 +296,32 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - sessionExpiry: Optionally a different session expiry can be passed when disconnecting. The default value is `nil`.
     ///   - userProperties: The user properties to send with the disconnect message to a 5.0 MQTT broker.
     /// - Returns: An `EventLoopFuture` for when the disconnection has completed.
+    @available(*, deprecated, message: "Use async/await disconnect(sendWillMessage:sessionExpiry:userProperties:)")
     @discardableResult
     public func disconnect(
         sendWillMessage: Bool = false,
         sessionExpiry: MQTTConfiguration.SessionExpiry? = nil,
         userProperties: [MQTTUserProperty] = []
     ) -> EventLoopFuture<Void> {
-        return lock.withLock {
+        _disconnectFuture(
+            sendWillMessage: sendWillMessage,
+            sessionExpiry: sessionExpiry,
+            userProperties: userProperties
+        )
+    }
+
+    func _disconnectFuture(
+        sendWillMessage: Bool,
+        sessionExpiry: MQTTConfiguration.SessionExpiry?,
+        userProperties: [MQTTUserProperty]
+    ) -> EventLoopFuture<Void> {
+        lock.withLock {
             guard let connection = connection else {
                 return connectionEventLoop.makeSucceededFuture(())
             }
-            
+
             self.connection = nil
-            
+
             let request = MQTTDisconnectReason.UserRequest(
                 sendWillMessage: sendWillMessage,
                 sessionExpiry: sessionExpiry,
@@ -320,18 +338,19 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - sessionExpiry: Optionally a different session expiry can be passed when disconnecting. The default value is `nil`.
     ///   - userProperties: The user properties to send with the disconnect message to a 5.0 MQTT broker.
     /// - Returns: An `EventLoopFuture` for when the reconnection succeeds or fails.
+    @available(*, deprecated, message: "Use async/await reconnect(sendWillMessage:sessionExpiry:userProperties:)")
     @discardableResult
     public func reconnect(
         sendWillMessage: Bool = false,
         sessionExpiry: MQTTConfiguration.SessionExpiry? = nil,
         userProperties: [MQTTUserProperty] = []
     ) -> EventLoopFuture<Void> {
-        return disconnect(
+        _disconnectFuture(
             sendWillMessage: sendWillMessage,
             sessionExpiry: sessionExpiry,
             userProperties: userProperties
         )
-        .flatMap { self.connect() }
+        .flatMap { self._connectFuture() }
         .map { _ in }
     }
     
@@ -342,8 +361,13 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     /// Depending on the QoS level, the client might keep on retrying to publish the message until it succeeds.
     /// - Parameter message: The message to publish.
     /// - Returns: An `EventLoopFuture` for when the publishing has completed.
+    @available(*, deprecated, message: "Use async/await publish(_:) instead")
     @discardableResult
     public func publish(_ message: MQTTMessage) -> EventLoopFuture<Void> {
+        _publishFuture(message)
+    }
+
+    func _publishFuture(_ message: MQTTMessage) -> EventLoopFuture<Void> {
         let retryInterval = configuration.publishRetryInterval
         let request = MQTTPublishRequest(message: message, retryInterval: retryInterval)
         return requestHandler.perform(request)
@@ -359,6 +383,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - retain: Boolean indicating whether to retain the message. The default value is `false`.
     ///   - properties: The message properties to send when publishing to a 5.0 MQTT broker.
     /// - Returns: An `EventLoopFuture` for when the publishing has completed.
+    @available(*, deprecated, message: "Use async/await publish(_:to:qos:retain:properties:)")
     @discardableResult
     public func publish(
         _ payload: MQTTPayload = .empty,
@@ -374,7 +399,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
             retain: retain,
             properties: properties
         )
-        return publish(message)
+        return _publishFuture(message)
     }
     
     /// Publishes a message to the broker.
@@ -387,6 +412,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - retain: Boolean indicating whether to retain the message. The default value is `false`.
     ///   - properties: The message properties to send when publishing to a 5.0 MQTT broker.
     /// - Returns: An `EventLoopFuture` for when the publishing has completed.
+    @available(*, deprecated, message: "Use async/await publish(_:to:qos:retain:properties:)")
     @discardableResult
     public func publish(
         _ payload: String,
@@ -402,7 +428,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
             retain: retain,
             properties: properties
         )
-        return publish(message)
+        return _publishFuture(message)
     }
     
     // MARK: - Subscriptions
@@ -413,11 +439,24 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - identifier: Optional identifier which will be send to broker and will be set on messages received for this subscription. This only works with 5.0 MQTT brokers.
     ///   - userProperties: Additional user properties to send when subscribing. This only works with 5.0 MQTT brokers.
     /// - Returns: An `EventLoopFuture` with an array of `MQTTSubscriptionResult`s indicating the results for each `MQTTSubscription`.
+    @available(*, deprecated, message: "Use async/await subscribe(to:identifier:userProperties:)")
     @discardableResult
     public func subscribe(
         to subscriptions: [MQTTSubscription],
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
+    ) -> EventLoopFuture<MQTTSubscribeResponse> {
+        _subscribeFuture(
+            to: subscriptions,
+            identifier: identifier,
+            userProperties: userProperties
+        )
+    }
+
+    func _subscribeFuture(
+        to subscriptions: [MQTTSubscription],
+        identifier: Int?,
+        userProperties: [MQTTUserProperty]
     ) -> EventLoopFuture<MQTTSubscribeResponse> {
         let timeoutInterval = configuration.subscriptionTimeoutInterval
         let request = MQTTSubscribeRequest(
@@ -437,6 +476,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - identifier: Optional identifier which will be send to broker and will be set on messages received for this subscription. This only works with 5.0 MQTT brokers.
     ///   - userProperties: Additional user properties to send when subscribing. This only works with 5.0 MQTT brokers.
     /// - Returns: An `EventLoopFuture` with the `MQTTSubscriptionResult` indicating the result of the subscription.
+    @available(*, deprecated, message: "Use async/await subscribe(to:qos:options:identifier:userProperties:)")
     @discardableResult
     public func subscribe(
         to topicFilter: String,
@@ -445,7 +485,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
     ) -> EventLoopFuture<MQTTSingleSubscribeResponse> {
-        return subscribe(
+        return _subscribeFuture(
             to: [.init(topicFilter: topicFilter, qos: qos, options: options)],
             identifier: identifier,
             userProperties: userProperties
@@ -466,6 +506,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - identifier: Optional identifier which will be send to broker and will be set on messages received for this subscription. This only works with 5.0 MQTT brokers.
     ///   - userProperties: Additional user properties to send when subscribing. This only works with 5.0 MQTT brokers.
     /// - Returns: An `EventLoopFuture` with the `MQTTSubscriptionResult` indicating the result of the subscription.
+    @available(*, deprecated, message: "Use async/await subscribe(to:qos:options:identifier:userProperties:)")
     @discardableResult
     public func subscribe(
         to topicFilters: [String],
@@ -474,7 +515,7 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
     ) -> EventLoopFuture<MQTTSubscribeResponse> {
-        return subscribe(
+        return _subscribeFuture(
             to: topicFilters.map { .init(topicFilter: $0, qos: qos, options: options) },
             identifier: identifier,
             userProperties: userProperties
@@ -486,10 +527,18 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - topicFilters: The topic filters to unsubscribe from.
     ///   - userProperties: Additional user properties to send when subscribing. This only works with 5.0 MQTT brokers.
     /// - Returns: An `EventLoopFuture` with the `MQTTUnsubscribeResponse` indicating the result of unsubscribing.
+    @available(*, deprecated, message: "Use async/await unsubscribe(from:userProperties:)")
     @discardableResult
     func unsubscribe(
         from topicFilters: [String],
         userProperties: [MQTTUserProperty] = []
+    ) -> EventLoopFuture<MQTTUnsubscribeResponse> {
+        _unsubscribeFuture(from: topicFilters, userProperties: userProperties)
+    }
+
+    func _unsubscribeFuture(
+        from topicFilters: [String],
+        userProperties: [MQTTUserProperty]
     ) -> EventLoopFuture<MQTTUnsubscribeResponse> {
         let timeoutInterval = configuration.subscriptionTimeoutInterval
         let request = MQTTUnsubscribeRequest(
@@ -505,12 +554,13 @@ public class MQTTClient: MQTTConnectionDelegate, MQTTSubscriptionsHandlerDelegat
     ///   - topicFilter: The topic filter to unsubscribe from.
     ///   - userProperties: Additional user properties to send when subscribing. This only works with 5.0 MQTT brokers.
     /// - Returns: An `EventLoopFuture` with the `MQTTUnsubscribeResponse` indicating the result of unsubscribing.
+    @available(*, deprecated, message: "Use async/await unsubscribe(from:userProperties:)")
     @discardableResult
     public func unsubscribe(
         from topicFilter: String,
         userProperties: [MQTTUserProperty] = []
     ) -> EventLoopFuture<MQTTSingleUnsubscribeResponse> {
-        return unsubscribe(
+        return _unsubscribeFuture(
             from: [topicFilter],
             userProperties: userProperties
         ).map {

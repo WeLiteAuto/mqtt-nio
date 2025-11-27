@@ -25,7 +25,7 @@ final class CallbackList<Arguments>: @unchecked Sendable {
     // MARK: - Vars
     
     private var callbackEntries: [Entry] = []
-    private let lock = Lock()
+    private let lock = NIOLock()
     
     // MARK: - Callbacks
     

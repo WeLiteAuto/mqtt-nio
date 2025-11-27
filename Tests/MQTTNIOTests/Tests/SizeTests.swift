@@ -1,67 +1,25 @@
 @testable import MQTTNIO
-import XCTest
+import Testing
 
-class SizeTests: XCTestCase {
-    
-    // MARK: - Utils
-    
+@Suite
+struct SizeTests {
     let existentialContainerBufferSize = 24
 
-    private func checkSize<T>(of: T.Type, file: StaticString = #file, line: UInt = #line) {
-        XCTAssertLessThanOrEqual(MemoryLayout<T>.size, existentialContainerBufferSize, file: file, line: line)
+    private func checkSize<T>(_ type: T.Type) {
+        #expect(MemoryLayout<T>.size <= existentialContainerBufferSize)
     }
-    
-    // MARK: - Tests
-    
-    func testPacketSize() {
-        checkSize(of: MQTTPacket.self)
-    }
-    
-    func testAcknowledgementSize() {
-        checkSize(of: MQTTPacket.Acknowledgement.self)
-    }
-    
-    func testConnectionAcknowledgementSize() {
-        checkSize(of: MQTTPacket.ConnAck.self)
-    }
-    
-    func testConnectSize() {
-        checkSize(of: MQTTPacket.Connect.self)
-    }
-    
-    func testDisconnect() {
-        checkSize(of: MQTTPacket.Disconnect.self)
-    }
-    
-    func testPingRequestSize() {
-        checkSize(of: MQTTPacket.PingReq.self)
-    }
-    
-    func testPingReponseSize() {
-        checkSize(of: MQTTPacket.PingResp.self)
-    }
-    
-    func testPublishSize() {
-        checkSize(of: MQTTPacket.Publish.self)
-    }
-    
-    func testSubscribeAcknowledgementSize() {
-        checkSize(of: MQTTPacket.SubAck.self)
-    }
-    
-    func testSubscribeSize() {
-        checkSize(of: MQTTPacket.Subscribe.self)
-    }
-    
-    func testUnsubscribeAcknowledgementSize() {
-        checkSize(of: MQTTPacket.UnsubAck.self)
-    }
-    
-    func testUnsubscribeSize() {
-        checkSize(of: MQTTPacket.Unsubscribe.self)
-    }
-    
-    func testInboundSize() {
-        checkSize(of: MQTTPacket.Inbound.self)
-    }
+
+    @Test func packetSize() { checkSize(MQTTPacket.self) }
+    @Test func acknowledgementSize() { checkSize(MQTTPacket.Acknowledgement.self) }
+    @Test func connectionAcknowledgementSize() { checkSize(MQTTPacket.ConnAck.self) }
+    @Test func connectSize() { checkSize(MQTTPacket.Connect.self) }
+    @Test func disconnect() { checkSize(MQTTPacket.Disconnect.self) }
+    @Test func pingRequestSize() { checkSize(MQTTPacket.PingReq.self) }
+    @Test func pingReponseSize() { checkSize(MQTTPacket.PingResp.self) }
+    @Test func publishSize() { checkSize(MQTTPacket.Publish.self) }
+    @Test func subscribeAcknowledgementSize() { checkSize(MQTTPacket.SubAck.self) }
+    @Test func subscribeSize() { checkSize(MQTTPacket.Subscribe.self) }
+    @Test func unsubscribeAcknowledgementSize() { checkSize(MQTTPacket.UnsubAck.self) }
+    @Test func unsubscribeSize() { checkSize(MQTTPacket.Unsubscribe.self) }
+    @Test func inboundSize() { checkSize(MQTTPacket.Inbound.self) }
 }
