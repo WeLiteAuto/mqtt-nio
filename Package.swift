@@ -1,8 +1,14 @@
-// swift-tools-version:5.10
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
     name: "mqtt-nio",
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .tvOS(.v13),
+        .watchOS(.v6),
+    ],
     products: [
         .library(name: "MQTTNIO", targets: ["MQTTNIO"]),
     ],
@@ -11,7 +17,6 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.30.0"),
         .package(url: "https://github.com/apple/swift-nio-transport-services.git", from: "1.22.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
-        .package(url: "https://github.com/apple/swift-testing.git", from: "0.9.0"),
     ],
     targets: [
         .target(name: "MQTTNIO", dependencies: [
@@ -25,8 +30,7 @@ let package = Package(
         .testTarget(name: "MQTTNIOTests", dependencies: [
             .target(name: "MQTTNIO"),
             .product(name: "NIOTestUtils", package: "swift-nio"),
-            .product(name: "Testing", package: "swift-testing"),
         ]),
     ],
-    swiftLanguageVersions: [.v5, .version("6")]
+    swiftLanguageVersions: [.version("6")]
 )
