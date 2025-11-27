@@ -23,7 +23,7 @@ final class MQTTRequestHandler: ChannelDuplexHandler {
     let logger: Logger
     var maxInflightEntries = MQTTRequestHandler.defaultMaxInflightEntries
     
-    private let lock = Lock()
+    private let lock = NIOLock()
 
     private var entriesInflight: [AnyEntry] = []
     private var entriesQueue: [AnyEntry] = []
@@ -55,13 +55,11 @@ final class MQTTRequestHandler: ChannelDuplexHandler {
             entriesQueue.append(entry)
         }
         
-        channel?.pipeline.context(handler: self).whenSuccess { [weak self] context in
-            guard let strongSelf = self else {
-                return
-            }
-            
-            strongSelf.withRequestContext(in: context) { requestContext in
-                strongSelf.startQueuedEntries(context: requestContext)
+        withHandlerContext { [weak self] context in
+            guard let self else { return }
+
+            self.withRequestContext(in: context) { requestContext in
+                self.startQueuedEntries(context: requestContext)
             }
         }
         
@@ -164,6 +162,21 @@ final class MQTTRequestHandler: ChannelDuplexHandler {
         }
         return entriesInflight.removeFirst()
     }
+
+    private func withHandlerContext(_ body: @escaping @Sendable (ChannelHandlerContext) -> Void) {
+        eventLoop.execute { [weak self] in
+            guard let self, let channel = self.channel else { return }
+
+            do {
+                let context = try channel.pipeline.syncOperations.context(handler: self)
+                body(context)
+            } catch {
+                self.logger.error("Unable to access handler context", metadata: [
+                    "error": "\(error)"
+                ])
+            }
+        }
+    }
     
     private func startQueuedEntries(context: MQTTRequestContext) {
         while let entry = getQueuedEntry() {
@@ -204,14 +217,12 @@ final class MQTTRequestHandler: ChannelDuplexHandler {
     }
     
     fileprivate func triggerRequestEvent(_ event: MQTTSendable, in eventLoop: EventLoop) {
-        channel?.pipeline.context(handler: self).whenSuccess { [weak self] context in
-            guard let strongSelf = self else {
-                return
-            }
-            strongSelf.logger.trace("Triggered request event", metadata: [
+        withHandlerContext { [weak self] context in
+            guard let self else { return }
+            self.logger.trace("Triggered request event", metadata: [
                 "event": "\(event)"
             ])
-            strongSelf.forEachEntry(with: context) { entry, requestContext in
+            self.forEachEntry(with: context) { entry, requestContext in
                 entry.handleEvent(context: requestContext, event: event)
             }
         }

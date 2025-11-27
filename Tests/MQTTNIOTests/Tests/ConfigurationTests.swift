@@ -1,118 +1,134 @@
+import Foundation
 @testable import MQTTNIO
-import XCTest
+import Testing
 
-final class ConfigurationTests: XCTestCase {
-    
-    private func configuration(forURL urlString: String) -> MQTTConfiguration {
+@Suite
+struct ConfigurationTests {
+    private func configuration(forURL urlString: String) throws -> MQTTConfiguration {
         guard let url = URL(string: urlString) else {
-            XCTFail("Invalid url passed")
-            fatalError("Invalid url passed")
+            Issue.record("Invalid url passed")
+            throw URLError(.badURL)
         }
         return MQTTConfiguration(url: url)
     }
-    
-    func testIpURL() throws {
-        let configuration = configuration(forURL: "192.168.1.123")
-        XCTAssertEqual(configuration.target, .host("192.168.1.123", port: 1883))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func ipURL() throws {
+        let configuration = try configuration(forURL: "192.168.1.123")
+        #expect(configuration.target == .host("192.168.1.123", port: 1883))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testIpPortURL() throws {
-        let configuration = configuration(forURL: "192.168.1.123:1234")
-        XCTAssertEqual(configuration.target, .host("192.168.1.123", port: 1234))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func ipPortURL() throws {
+        let configuration = try configuration(forURL: "192.168.1.123:1234")
+        #expect(configuration.target == .host("192.168.1.123", port: 1234))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testHostURL() throws {
-        let configuration = configuration(forURL: "test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 1883))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func hostURL() throws {
+        let configuration = try configuration(forURL: "test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 1883))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testSchemeURL() throws {
-        let configuration = configuration(forURL: "mqtt://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 1883))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func schemeURL() throws {
+        let configuration = try configuration(forURL: "mqtt://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 1883))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testSSLURL() throws {
-        let configuration = configuration(forURL: "mqtts://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 8883))
-        XCTAssertNotNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func sslURL() throws {
+        let configuration = try configuration(forURL: "mqtts://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 8883))
+        #expect(configuration.tls != nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testWebSocketURL() throws {
-        let configuration = configuration(forURL: "ws://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 80))
-        XCTAssertNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .enabled)
+
+    @Test
+    func webSocketURL() throws {
+        let configuration = try configuration(forURL: "ws://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 80))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == .enabled)
     }
-    
-    func testWebSocketURLWithPath() throws {
-        let configuration = configuration(forURL: "ws://test.mosquitto.org/some-path")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 80))
-        XCTAssertNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .init(path: "/some-path"))
+
+    @Test
+    func webSocketURLWithPath() throws {
+        let configuration = try configuration(forURL: "ws://test.mosquitto.org/some-path")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 80))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == .init(path: "/some-path"))
     }
-    
-    func testWebSocketURLWithQuery() throws {
-        let configuration = configuration(forURL: "ws://test.mosquitto.org?key1=value1&key2=value2")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 80))
-        XCTAssertNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .init(path: "?key1=value1&key2=value2"))
+
+    @Test
+    func webSocketURLWithQuery() throws {
+        let configuration = try configuration(forURL: "ws://test.mosquitto.org?key1=value1&key2=value2")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 80))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == .init(path: "?key1=value1&key2=value2"))
     }
-    
-    func testWebSocketURLWithPathAndQuery() throws {
-        let configuration = configuration(forURL: "ws://test.mosquitto.org/some-other-path?key1=value1&key2=value2")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 80))
-        XCTAssertNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .init(path: "/some-other-path?key1=value1&key2=value2"))
+
+    @Test
+    func webSocketURLWithPathAndQuery() throws {
+        let configuration = try configuration(forURL: "ws://test.mosquitto.org/some-other-path?key1=value1&key2=value2")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 80))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == .init(path: "/some-other-path?key1=value1&key2=value2"))
     }
-    
-    func testWebSocketHTTPURL() throws {
-        let configuration = configuration(forURL: "http://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 80))
-        XCTAssertNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .enabled)
+
+    @Test
+    func webSocketHTTPURL() throws {
+        let configuration = try configuration(forURL: "http://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 80))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == .enabled)
     }
-    
-    func testWebSocketSSLURL() throws {
-        let configuration = configuration(forURL: "wss://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 443))
-        XCTAssertNotNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .enabled)
+
+    @Test
+    func webSocketSSLURL() throws {
+        let configuration = try configuration(forURL: "wss://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 443))
+        #expect(configuration.tls != nil)
+        #expect(configuration.webSockets == .enabled)
     }
-    
-    func testWebSocketHTTPSSLURL() throws {
-        let configuration = configuration(forURL: "https://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 443))
-        XCTAssertNotNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .enabled)
+
+    @Test
+    func webSocketHTTPSSLURL() throws {
+        let configuration = try configuration(forURL: "https://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 443))
+        #expect(configuration.tls != nil)
+        #expect(configuration.webSockets == .enabled)
     }
-    
-    func testPortURL() throws {
-        let configuration = configuration(forURL: "mqtt://test.mosquitto.org:8883")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 8883))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func portURL() throws {
+        let configuration = try configuration(forURL: "mqtt://test.mosquitto.org:8883")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 8883))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
-    
-    func testWsPortURL() throws {
-        let configuration = configuration(forURL: "wss://test.mosquitto.org:8091")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 8091))
-        XCTAssertNotNil(configuration.tls)
-        XCTAssertEqual(configuration.webSockets, .enabled)
+
+    @Test
+    func wsPortURL() throws {
+        let configuration = try configuration(forURL: "wss://test.mosquitto.org:8091")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 8091))
+        #expect(configuration.tls != nil)
+        #expect(configuration.webSockets == .enabled)
     }
-    
-    func testInvalidScheme() throws {
-        let configuration = configuration(forURL: "ssh://test.mosquitto.org")
-        XCTAssertEqual(configuration.target, .host("test.mosquitto.org", port: 1883))
-        XCTAssertNil(configuration.tls)
-        XCTAssertNil(configuration.webSockets)
+
+    @Test
+    func invalidScheme() throws {
+        let configuration = try configuration(forURL: "ssh://test.mosquitto.org")
+        #expect(configuration.target == .host("test.mosquitto.org", port: 1883))
+        #expect(configuration.tls == nil)
+        #expect(configuration.webSockets == nil)
     }
 }

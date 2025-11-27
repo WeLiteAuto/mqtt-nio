@@ -1,7 +1,7 @@
 import Foundation
 import NIO
 
-#if compiler(>=5.5.2) && canImport(_Concurrency)
+#if canImport(_Concurrency)
 
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 extension MQTTClient {
@@ -12,7 +12,7 @@ extension MQTTClient {
     /// - Returns: The `MQTTConnectResponse` returned from the broker.
     @discardableResult
     public func connect() async throws -> MQTTConnectResponse {
-        return try await connect().get()
+        return try await _connectFuture().get()
     }
     
     /// Disconnects from the broker.
@@ -25,7 +25,7 @@ extension MQTTClient {
         sessionExpiry: MQTTConfiguration.SessionExpiry? = nil,
         userProperties: [MQTTUserProperty] = []
     ) async throws {
-        try await disconnect(
+        try await _disconnectFuture(
             sendWillMessage: sendWillMessage,
             sessionExpiry: sessionExpiry,
             userProperties: userProperties
@@ -43,11 +43,12 @@ extension MQTTClient {
         sessionExpiry: MQTTConfiguration.SessionExpiry? = nil,
         userProperties: [MQTTUserProperty] = []
     ) async throws {
-        try await reconnect(
+        try await _disconnectFuture(
             sendWillMessage: sendWillMessage,
             sessionExpiry: sessionExpiry,
             userProperties: userProperties
         ).get()
+        _ = try await _connectFuture().get()
     }
     
     // MARK: - Publish
@@ -57,7 +58,7 @@ extension MQTTClient {
     /// Depending on the QoS level, the client might keep on retrying to publish the message until it succeeds.
     /// - Parameter message: The message to publish.
     public func publish(_ message: MQTTMessage) async throws {
-        try await publish(message).get()
+        try await _publishFuture(message).get()
     }
     
     /// Publishes a message to the broker.
@@ -76,13 +77,14 @@ extension MQTTClient {
         retain: Bool = false,
         properties: MQTTMessage.Properties = .init()
     ) async throws {
-        try await publish(
-            payload,
-            to: topic,
+        let message = MQTTMessage(
+            topic: topic,
+            payload: payload,
             qos: qos,
             retain: retain,
             properties: properties
-        ).get()
+        )
+        try await _publishFuture(message).get()
     }
     
     /// Publishes a message to the broker.
@@ -101,13 +103,14 @@ extension MQTTClient {
         retain: Bool = false,
         properties: MQTTMessage.Properties = .init()
     ) async throws {
-        try await publish(
-            payload,
-            to: topic,
+        let message = MQTTMessage(
+            topic: topic,
+            payload: payload,
             qos: qos,
             retain: retain,
             properties: properties
-        ).get()
+        )
+        try await _publishFuture(message).get()
     }
     
     // MARK: - Subscriptions
@@ -124,7 +127,7 @@ extension MQTTClient {
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
     ) async throws -> MQTTSubscribeResponse {
-        return try await subscribe(
+        return try await _subscribeFuture(
             to: subscriptions,
             identifier: identifier,
             userProperties: userProperties
@@ -147,13 +150,17 @@ extension MQTTClient {
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
     ) async throws -> MQTTSingleSubscribeResponse {
-        return try await subscribe(
-            to: topicFilter,
-            qos: qos,
-            options: options,
+        return try await _subscribeFuture(
+            to: [.init(topicFilter: topicFilter, qos: qos, options: options)],
             identifier: identifier,
             userProperties: userProperties
-        ).get()
+        ).map {
+            MQTTSingleSubscribeResponse(
+                result: $0.results[0],
+                userProperties: $0.userProperties,
+                reasonString: $0.reasonString
+            )
+        }.get()
     }
     
     /// Subscribes to one or more topics with a given QoS level.
@@ -172,10 +179,8 @@ extension MQTTClient {
         identifier: Int? = nil,
         userProperties: [MQTTUserProperty] = []
     ) async throws -> MQTTSubscribeResponse {
-        return try await subscribe(
-            to: topicFilters,
-            qos: qos,
-            options: options,
+        return try await _subscribeFuture(
+            to: topicFilters.map { .init(topicFilter: $0, qos: qos, options: options) },
             identifier: identifier,
             userProperties: userProperties
         ).get()
@@ -191,7 +196,7 @@ extension MQTTClient {
         from topicFilters: [String],
         userProperties: [MQTTUserProperty] = []
     ) async throws -> MQTTUnsubscribeResponse {
-        return try await unsubscribe(
+        return try await _unsubscribeFuture(
             from: topicFilters,
             userProperties: userProperties
         ).get()
@@ -207,10 +212,16 @@ extension MQTTClient {
         from topicFilter: String,
         userProperties: [MQTTUserProperty] = []
     ) async throws -> MQTTSingleUnsubscribeResponse {
-        return try await unsubscribe(
-            from: topicFilter,
+        return try await _unsubscribeFuture(
+            from: [topicFilter],
             userProperties: userProperties
-        ).get()
+        ).map {
+            MQTTSingleUnsubscribeResponse(
+                result: $0.results[0],
+                userProperties: $0.userProperties,
+                reasonString: $0.reasonString
+            )
+        }.get()
     }
     
     // MARK: - Re-authenticate

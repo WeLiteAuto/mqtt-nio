@@ -1,104 +1,105 @@
 @testable import MQTTNIO
-import XCTest
+import Testing
 
-final class TopicTests: XCTestCase {
-    func testTopicValidation() {
-        XCTAssertTrue("/".isValidMqttTopic)
-        XCTAssertTrue("/test".isValidMqttTopic)
-        XCTAssertTrue("one/two/three".isValidMqttTopic)
-        XCTAssertTrue("one//three".isValidMqttTopic)
-        XCTAssertTrue("$SYS".isValidMqttTopic)
-        XCTAssertTrue("$SYS/test".isValidMqttTopic)
-        
-        XCTAssertFalse("one/+/three".isValidMqttTopic)
-        XCTAssertFalse("one/two/#".isValidMqttTopic)
-        XCTAssertFalse("/+".isValidMqttTopic)
-        XCTAssertFalse("/#".isValidMqttTopic)
-        XCTAssertFalse("test/+".isValidMqttTopic)
-        XCTAssertFalse("test/#".isValidMqttTopic)
-        XCTAssertFalse("+/".isValidMqttTopic)
-        XCTAssertFalse("+/test".isValidMqttTopic)
-        XCTAssertFalse("one/+/three".isValidMqttTopic)
-        XCTAssertFalse("#".isValidMqttTopic)
-        XCTAssertFalse("+".isValidMqttTopic)
-        XCTAssertFalse("".isValidMqttTopic)
-        XCTAssertFalse("\u{0000}".isValidMqttTopic)
-        XCTAssertFalse("#/".isValidMqttTopic)
-        XCTAssertFalse("#/test".isValidMqttTopic)
-        XCTAssertFalse("one/#/three".isValidMqttTopic)
-        XCTAssertFalse("one/two#".isValidMqttTopic)
-        XCTAssertFalse("one/two+".isValidMqttTopic)
-        XCTAssertFalse("one/+two/three".isValidMqttTopic)
-        XCTAssertFalse("one/two+/three".isValidMqttTopic)
+@Suite
+struct TopicTests {
+    @Test
+    func topicValidation() {
+        #expect("/".isValidMqttTopic)
+        #expect("/test".isValidMqttTopic)
+        #expect("one/two/three".isValidMqttTopic)
+        #expect("one//three".isValidMqttTopic)
+        #expect("$SYS".isValidMqttTopic)
+        #expect("$SYS/test".isValidMqttTopic)
+
+        #expect(!"one/+/three".isValidMqttTopic)
+        #expect(!"one/two/#".isValidMqttTopic)
+        #expect(!"/+".isValidMqttTopic)
+        #expect(!"/#".isValidMqttTopic)
+        #expect(!"test/+".isValidMqttTopic)
+        #expect(!"test/#".isValidMqttTopic)
+        #expect(!"+/".isValidMqttTopic)
+        #expect(!"+/test".isValidMqttTopic)
+        #expect(!"one/+/three".isValidMqttTopic)
+        #expect(!"#".isValidMqttTopic)
+        #expect(!"+".isValidMqttTopic)
+        #expect(!"".isValidMqttTopic)
+        #expect(!"\u{0000}".isValidMqttTopic)
+        #expect(!"#/".isValidMqttTopic)
+        #expect(!"#/test".isValidMqttTopic)
+        #expect(!"one/#/three".isValidMqttTopic)
+        #expect(!"one/two#".isValidMqttTopic)
+        #expect(!"one/two+".isValidMqttTopic)
+        #expect(!"one/+two/three".isValidMqttTopic)
+        #expect(!"one/two+/three".isValidMqttTopic)
     }
-    
-    func testTopicFilterValidation() {
-        XCTAssertTrue("one/two/three".isValidMqttTopicFilter)
-        XCTAssertTrue("one//three".isValidMqttTopicFilter)
-        XCTAssertTrue("$SYS".isValidMqttTopicFilter)
-        XCTAssertTrue("$SYS/test".isValidMqttTopicFilter)
-        XCTAssertTrue("/".isValidMqttTopicFilter)
-        XCTAssertTrue("/test".isValidMqttTopicFilter)
-        XCTAssertTrue("#".isValidMqttTopicFilter)
-        XCTAssertTrue("+".isValidMqttTopicFilter)
-        XCTAssertTrue("one/+/three".isValidMqttTopicFilter)
-        XCTAssertTrue("one/two/#".isValidMqttTopicFilter)
-        XCTAssertTrue("/+".isValidMqttTopicFilter)
-        XCTAssertTrue("/#".isValidMqttTopicFilter)
-        XCTAssertTrue("test/+".isValidMqttTopicFilter)
-        XCTAssertTrue("test/#".isValidMqttTopicFilter)
-        XCTAssertTrue("+/".isValidMqttTopicFilter)
-        XCTAssertTrue("+/test".isValidMqttTopicFilter)
-        XCTAssertTrue("one/+/three".isValidMqttTopicFilter)
-        
-        XCTAssertFalse("".isValidMqttTopicFilter)
-        XCTAssertFalse("\u{0000}".isValidMqttTopicFilter)
-        XCTAssertFalse("#/".isValidMqttTopicFilter)
-        XCTAssertFalse("#/test".isValidMqttTopicFilter)
-        XCTAssertFalse("one/#/three".isValidMqttTopicFilter)
-        XCTAssertFalse("one/two#".isValidMqttTopicFilter)
-        XCTAssertFalse("one/two+".isValidMqttTopicFilter)
-        XCTAssertFalse("one/+two/three".isValidMqttTopicFilter)
-        XCTAssertFalse("one/two+/three".isValidMqttTopicFilter)
+
+    @Test
+    func topicFilterValidation() {
+        #expect("one/two/three".isValidMqttTopicFilter)
+        #expect("one//three".isValidMqttTopicFilter)
+        #expect("$SYS".isValidMqttTopicFilter)
+        #expect("$SYS/test".isValidMqttTopicFilter)
+        #expect("/".isValidMqttTopicFilter)
+        #expect("/test".isValidMqttTopicFilter)
+        #expect("#".isValidMqttTopicFilter)
+        #expect("+".isValidMqttTopicFilter)
+        #expect("one/+/three".isValidMqttTopicFilter)
+        #expect("one/two/#".isValidMqttTopicFilter)
+        #expect("/+".isValidMqttTopicFilter)
+        #expect("/#".isValidMqttTopicFilter)
+        #expect("test/+".isValidMqttTopicFilter)
+        #expect("test/#".isValidMqttTopicFilter)
+        #expect("+/".isValidMqttTopicFilter)
+        #expect("+/test".isValidMqttTopicFilter)
+        #expect("one/+/three".isValidMqttTopicFilter)
+
+        #expect(!"".isValidMqttTopicFilter)
+        #expect(!"\u{0000}".isValidMqttTopicFilter)
+        #expect(!"#/".isValidMqttTopicFilter)
+        #expect(!"#/test".isValidMqttTopicFilter)
+        #expect(!"one/#/three".isValidMqttTopicFilter)
+        #expect(!"one/two#".isValidMqttTopicFilter)
+        #expect(!"one/two+".isValidMqttTopicFilter)
+        #expect(!"one/+two/three".isValidMqttTopicFilter)
+        #expect(!"one/two+/three".isValidMqttTopicFilter)
     }
-    
-    func testTopicFilterMatches() {
-        XCTAssertTrue("one/two/three".matchesMqttTopicFilter("one/two/three"))
-        XCTAssertTrue("one/two/three".matchesMqttTopicFilter("one/+/three"))
-        XCTAssertTrue("one/two/three".matchesMqttTopicFilter("one/#"))
-        
-        XCTAssertFalse("one/two/three".matchesMqttTopicFilter("One/Two/Three"))
-        
-        XCTAssertFalse("/one/two/three".matchesMqttTopicFilter("one/two/three"))
-        XCTAssertTrue("/one/two/three".matchesMqttTopicFilter("/one/two/three"))
-        
-        XCTAssertTrue("one/two/three/four/five/six".matchesMqttTopicFilter("one/two/#"))
-        XCTAssertTrue("one/two/three/four/five/six".matchesMqttTopicFilter("one/+/three/#"))
-        
-        XCTAssertTrue("one/two/three/four/five/six".matchesMqttTopicFilter("one/+/three/#"))
-        XCTAssertTrue("one/two/three/four/five/six".matchesMqttTopicFilter("one/+/three/#"))
-        XCTAssertTrue("one/two/three/four/five/six".matchesMqttTopicFilter("one/two/+/four/+/six"))
-        
-        XCTAssertFalse("one/two/three".matchesMqttTopicFilter("one/two"))
-        XCTAssertFalse("one/two/three".matchesMqttTopicFilter("one/+"))
-        XCTAssertFalse("one/two/three".matchesMqttTopicFilter("one/two/three/four"))
-        XCTAssertTrue("one/two/three".matchesMqttTopicFilter("one/two/three/#"))
-        XCTAssertFalse("one/two/three".matchesMqttTopicFilter("one/two/three/+"))
-        
-        XCTAssertTrue("one/two/three".matchesMqttTopicFilter("#"))
-        XCTAssertTrue("one".matchesMqttTopicFilter("one/#"))
-        XCTAssertFalse("one".matchesMqttTopicFilter("one/+"))
-        
-        XCTAssertTrue("one//three".matchesMqttTopicFilter("one//three"))
-        XCTAssertTrue("one//three".matchesMqttTopicFilter("one/#"))
-        XCTAssertTrue("one//three".matchesMqttTopicFilter("one//#"))
-        
-        XCTAssertFalse("$SYS/test".matchesMqttTopicFilter("#"))
-        XCTAssertFalse("$SYS/test".matchesMqttTopicFilter("#/test"))
-        XCTAssertFalse("$SYS/test".matchesMqttTopicFilter("+"))
-        XCTAssertFalse("$SYS/test".matchesMqttTopicFilter("+/test"))
-        XCTAssertTrue("$SYS/test".matchesMqttTopicFilter("$SYS/+"))
-        XCTAssertTrue("$SYS/test".matchesMqttTopicFilter("$SYS/#"))
-        XCTAssertTrue("$SYS/test".matchesMqttTopicFilter("$SYS/test"))
+
+    @Test
+    func topicFilterMatches() {
+        #expect("one/two/three".matchesMqttTopicFilter("one/two/three"))
+        #expect("one/two/three".matchesMqttTopicFilter("one/+/three"))
+        #expect("one/two/three".matchesMqttTopicFilter("one/#"))
+
+        #expect(!"one/two/three".matchesMqttTopicFilter("One/Two/Three"))
+
+        #expect(!"/one/two/three".matchesMqttTopicFilter("one/two/three"))
+        #expect("/one/two/three".matchesMqttTopicFilter("/one/two/three"))
+
+        #expect("one/two/three/four/five/six".matchesMqttTopicFilter("one/two/#"))
+        #expect("one/two/three/four/five/six".matchesMqttTopicFilter("one/+/three/#"))
+        #expect("one/two/three/four/five/six".matchesMqttTopicFilter("one/two/+/four/+/six"))
+
+        #expect(!"one/two/three".matchesMqttTopicFilter("one/two"))
+        #expect(!"one/two/three".matchesMqttTopicFilter("one/+"))
+        #expect(!"one/two/three".matchesMqttTopicFilter("one/two/three/four"))
+        #expect("one/two/three".matchesMqttTopicFilter("one/two/three/#"))
+        #expect(!"one/two/three".matchesMqttTopicFilter("one/two/three/+"))
+
+        #expect("one/two/three".matchesMqttTopicFilter("#"))
+        #expect("one".matchesMqttTopicFilter("one/#"))
+        #expect(!"one".matchesMqttTopicFilter("one/+"))
+
+        #expect("one//three".matchesMqttTopicFilter("one//three"))
+        #expect("one//three".matchesMqttTopicFilter("one/#"))
+        #expect("one//three".matchesMqttTopicFilter("one//#"))
+
+        #expect(!"$SYS/test".matchesMqttTopicFilter("#"))
+        #expect(!"$SYS/test".matchesMqttTopicFilter("#/test"))
+        #expect(!"$SYS/test".matchesMqttTopicFilter("+"))
+        #expect(!"$SYS/test".matchesMqttTopicFilter("+/test"))
+        #expect("$SYS/test".matchesMqttTopicFilter("$SYS/+"))
+        #expect("$SYS/test".matchesMqttTopicFilter("$SYS/#"))
+        #expect("$SYS/test".matchesMqttTopicFilter("$SYS/test"))
     }
 }
