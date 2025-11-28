@@ -5,7 +5,7 @@ Non-blocking, event-driven Swift client for MQTT ([5.0](https://docs.oasis-open.
 This library has support for WebSocket connections and TLS. It runs on all platforms Swift NIO runs on (e.g. macOS, iOS, Linux, etc.).
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/sroebert/mqtt-nio/test.yml?branch=main&label=Tests&style=for-the-badge)](https://github.com/sroebert/mqtt-nio/actions)
-[![Swift 5.7](http://img.shields.io/badge/swift-5.7-brightgreen.svg?style=for-the-badge)](https://swift.org)
+[![Swift 6.0](http://img.shields.io/badge/swift-6.0-brightgreen.svg?style=for-the-badge)](https://swift.org)
 [![Release](https://img.shields.io/github/release/sroebert/mqtt-nio.svg?style=for-the-badge)](https://github.com/sroebert/mqtt-nio/releases)
 
 ## Installation
@@ -153,8 +153,18 @@ for await message in client.messages {
 
 ## Unit Tests
 
-To easily run the tests locally, first generate self signed certificates followed by running docker-compose to setup the needed MQTT broker containers.
-```
-./mosquitto/certs/generate.sh
-docker compose up
-```
+The integration test harness uses a local `mosquitto` binary to spin up brokers for the suite. Before running the tests:
+
+1. Generate the self-signed certificates via the helper script:
+   ```
+   ./mosquitto/certs/generate.sh
+   ```
+2. Ensure a `mosquitto` executable is available on your `PATH` (the tests invoke it directly).
+3. Stop any system `mosquitto` service so the harness can bind to the required ports.
+
+The test runner starts listeners on the following ports:
+
+- `1887`: MQTT
+- `8883`: MQTT over TLS
+- `1884`: MQTT over WebSockets
+- `8884`: Secure MQTT over WebSockets
