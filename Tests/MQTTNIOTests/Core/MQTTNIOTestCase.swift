@@ -45,7 +45,7 @@ struct MQTTTestContext {
 
     var defaultClient: MQTTClient {
         MQTTClient(configuration: .init(
-            target: .host("localhost", port: 1883),
+            target: .host("localhost", port: 1887),
             reconnectMode: .none
         ), eventLoopGroupProvider: .shared(group))
     }
@@ -82,12 +82,31 @@ struct MQTTTestContext {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let caCertifcateURL = rootDir.appendingPathComponent("mosquitto/certs/ca.crt")
-            let caCertificate = try NIOSSLCertificate.fromPEMFile(caCertifcateURL.path)[0]
+            
+            let possiblePaths = [
+                rootDir.appendingPathComponent("mosquitto/certs/ca.crt").path,
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("mosquitto/certs/ca.crt").path,
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("ca.crt").path
+            ]
+
+            var caCertificate: NIOSSLCertificate?
+            for path in possiblePaths {
+                if let certs = try? NIOSSLCertificate.fromPEMFile(path), !certs.isEmpty {
+                    caCertificate = certs[0]
+                    break
+                }
+            }
+
+            guard let certificate = caCertificate else {
+                // If we can't load from any path, try the default path one last time to let it throw the specific error
+                let defaultPath = rootDir.appendingPathComponent("mosquitto/certs/ca.crt").path
+                _ = try NIOSSLCertificate.fromPEMFile(defaultPath)
+                throw ClientSetupError.invalidCertificateData // Should not be reached
+            }
 
             var tlsConfig = TLSConfiguration.makeClientConfiguration()
             tlsConfig.certificateVerification = .noHostnameVerification
-            tlsConfig.trustRoots = .certificates([caCertificate])
+            tlsConfig.trustRoots = .certificates([certificate])
 
             return MQTTClient(configuration: .init(
                 target: .host("localhost", port: 8883),

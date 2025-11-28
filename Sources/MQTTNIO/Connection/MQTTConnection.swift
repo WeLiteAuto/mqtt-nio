@@ -320,7 +320,7 @@ final class MQTTConnection: MQTTErrorHandlerDelegate, MQTTFallbackPacketHandlerD
         let errorHandler = MQTTErrorHandler(logger: logger)
         errorHandler.delegate = self
         
-        return channel.pipeline.addHandlers([
+        let handlers: [ChannelHandler] = [
             // Decoding
             ByteToMessageHandler(MQTTPacketDecoder(logger: logger)),
             MQTTPacketTypeParser(
@@ -347,7 +347,9 @@ final class MQTTConnection: MQTTErrorHandlerDelegate, MQTTFallbackPacketHandlerD
             
             // Error handler
             errorHandler
-        ]).map { channel }
+        ]
+
+        return channel.pipeline.addHandlers(handlers).map { channel }
     }
     
     private func requestConnectionWithBroker(for channel: Channel) -> EventLoopFuture<(Channel, MQTTConnectResponse)> {

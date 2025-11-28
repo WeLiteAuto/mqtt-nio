@@ -6,8 +6,14 @@ struct AuthenticationTests {
     @Test
     func successLogin() async throws {
         try await withTestContext { context in
-            let client = context.defaultClient
-            client.configuration.credentials = .init(username: "test", password: "p@ssw0rd")
+            let client = MQTTClient(
+                configuration: .init(
+                    target: .host("localhost", port: 1885),
+                    credentials: .init(username: "test", password: "p@ssw0rd"),
+                    reconnectMode: .none
+                ),
+                eventLoopGroupProvider: .shared(context.group)
+            )
 
             for version in MQTTProtocolVersion.allCases {
                 client.configuration.protocolVersion = version
@@ -24,8 +30,14 @@ struct AuthenticationTests {
     @Test
     func notAuthorized() async throws {
         try await withTestContext { context in
-            let client = context.defaultClient
-            client.configuration.credentials = .init(username: "test", password: "invalid")
+            let client = MQTTClient(
+                configuration: .init(
+                    target: .host("localhost", port: 1885),
+                    credentials: .init(username: "test", password: "invalid"),
+                    reconnectMode: .none
+                ),
+                eventLoopGroupProvider: .shared(context.group)
+            )
 
             for version in MQTTProtocolVersion.allCases {
                 client.configuration.protocolVersion = version

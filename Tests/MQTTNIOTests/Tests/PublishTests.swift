@@ -20,8 +20,9 @@ struct PublishTests {
                 let response = try await client.subscribe(to: topic, qos: qos)
                 #expect(response.result == .success(qos))
 
-                try await client.publish(payload, to: topic, qos: qos)
-                let messages = try await waitForMessages(client, expectedCount: 1)
+                let messages = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic, qos: qos)
+                }
                 #expect(messages.first?.payload.string == payload)
                 #expect(messages.first?.qos == qos)
 
@@ -46,8 +47,9 @@ struct PublishTests {
                 let response = try await client.subscribe(to: topic, qos: qos)
                 #expect(response.result == .success(qos))
 
-                try await client.publish(payload, to: topic, qos: qos)
-                let messages = try await waitForMessages(client, expectedCount: 1)
+                let messages = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic, qos: qos)
+                }
                 #expect(messages.first?.payload.string == payload)
                 #expect(messages.first?.qos == qos)
 
@@ -72,8 +74,9 @@ struct PublishTests {
                 let response = try await client.subscribe(to: topic, qos: qos)
                 #expect(response.result == .success(qos))
 
-                try await client.publish(payload, to: topic, qos: qos)
-                let messages = try await waitForMessages(client, expectedCount: 1)
+                let messages = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic, qos: qos)
+                }
                 #expect(messages.first?.payload.string == payload)
                 #expect(messages.first?.qos == qos)
 
@@ -97,16 +100,21 @@ struct PublishTests {
                 try await client.publish(to: topic, retain: true)
 
                 try await client.subscribe(to: topic)
-                try await client.publish(payload, to: topic, retain: true)
-
-                let first = try await waitForMessages(client, expectedCount: 1)
+                
+                let first = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic, retain: true)
+                }
                 #expect(first.first?.payload.string == payload)
                 #expect(first.first?.retain == false)
 
                 try await client.disconnect()
                 try await client.connect()
-                try await client.subscribe(to: topic)
-                let second = try await waitForMessages(client, expectedCount: 1)
+                
+                // For the second part, the message comes immediately after subscribe.
+                // We must setup listener BEFORE subscribe.
+                let second = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.subscribe(to: topic)
+                }
                 #expect(second.first?.payload.string == payload)
                 #expect(second.first?.retain == true)
 
@@ -134,9 +142,10 @@ struct PublishTests {
                 try await client.subscribe(to: topic)
                 try await client.disconnect()
                 try await client.connect()
-                try await client.publish(payload, to: topic)
-
-                let messages = try await waitForMessages(client, expectedCount: 1)
+                
+                let messages = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic)
+                }
                 #expect(messages.first?.payload.string == payload)
 
                 try await client.disconnect()
@@ -158,10 +167,11 @@ struct PublishTests {
             try await client.subscribe(to: topic)
             try await client.disconnect()
             try await client.connect()
-            try await client.publish(payload, to: topic)
-
+            
             do {
-                _ = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(2))
+                _ = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(2)) {
+                    try await client.publish(payload, to: topic)
+                }
                 Issue.record("Should not receive retained message when session is not kept")
             } catch is TestTimeoutError {
                 // expected
@@ -209,12 +219,24 @@ struct PublishTests {
                 let payload = "Hello World!"
 
                 try await client.subscribe(to: topic)
-                try await client.publish(payload, to: topic)
-                try await client.unsubscribe(from: topic)
-                try await client.publish(payload, to: topic)
 
-                let messages = try await waitForMessages(client, expectedCount: 1)
+                // 1. Verify we receive message when subscribed
+                let messages = try await waitForMessages(client, expectedCount: 1) {
+                    try await client.publish(payload, to: topic)
+                }
                 #expect(messages.first?.payload.string == payload)
+
+                try await client.unsubscribe(from: topic)
+
+                // 2. Verify we DO NOT receive message after unsubscribe
+                do {
+                    _ = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1)) {
+                        try await client.publish(payload, to: topic)
+                    }
+                    Issue.record("Should not have received a message after unsubscribe")
+                } catch is TestTimeoutError {
+                    // expected
+                }
 
                 try await client.disconnect()
             }
@@ -249,6 +271,7 @@ struct PublishTests {
         try await withTestContext { context in
             let client = context.defaultClient
             client.configuration.clientId = ""
+            client.configuration.clean = false
 
             for version in MQTTProtocolVersion.allCases {
                 client.configuration.protocolVersion = version

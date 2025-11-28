@@ -75,6 +75,9 @@ final class BrokerHarness: @unchecked Sendable {
 
                 processes.append(process)
             }
+            
+            // Give brokers a moment to start up and bind ports
+            Thread.sleep(forTimeInterval: 1.0)
         }
     }
 

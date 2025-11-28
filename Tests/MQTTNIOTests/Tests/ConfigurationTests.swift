@@ -22,7 +22,7 @@ struct ConfigurationTests {
 
     @Test
     func ipPortURL() throws {
-        let configuration = try configuration(forURL: "192.168.1.123:1234")
+        let configuration = try configuration(forURL: "mqtt://192.168.1.123:1234")
         #expect(configuration.target == .host("192.168.1.123", port: 1234))
         #expect(configuration.tls == nil)
         #expect(configuration.webSockets == nil)

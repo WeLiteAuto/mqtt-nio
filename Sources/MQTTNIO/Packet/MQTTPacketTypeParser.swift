@@ -1,7 +1,7 @@
 import NIO
 import Logging
 
-final class MQTTPacketTypeParser: ChannelInboundHandler {
+final class MQTTPacketTypeParser: ChannelInboundHandler, MQTTSendable {
     typealias InboundIn = MQTTPacket
     typealias InboundOut = MQTTPacket.Inbound
 

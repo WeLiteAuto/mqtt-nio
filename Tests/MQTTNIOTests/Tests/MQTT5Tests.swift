@@ -93,15 +93,16 @@ struct MQTT5Tests {
             let topic = "mqtt-nio/tests/no-local"
             let payload = "Hello World!"
 
+            try await client.subscribe(to: topic, options: .init(noLocalMessages: true))
+
             do {
-                _ = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1))
+                _ = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1)) {
+                    try await client.publish(payload, to: topic)
+                }
                 Issue.record("Should not receive payload when noLocal flag is used")
             } catch is TestTimeoutError {
                 // expected
             }
-
-            try await client.subscribe(to: topic, options: .init(noLocalMessages: true))
-            try await client.publish(payload, to: topic)
         }
     }
 
@@ -117,9 +118,10 @@ struct MQTT5Tests {
             try await client.publish(to: topic, retain: true)
 
             try await client.subscribe(to: topic, options: .init(retainAsPublished: false))
-            try await client.publish(payload, to: topic, retain: true)
-
-            let messages = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1))
+            
+            let messages = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1)) {
+                try await client.publish(payload, to: topic, retain: true)
+            }
             #expect(messages.first?.payload.string == payload)
             #expect(messages.first?.retain == false)
 
@@ -139,9 +141,10 @@ struct MQTT5Tests {
             try await client.publish(to: topic, retain: true)
 
             try await client.subscribe(to: topic, options: .init(retainAsPublished: true))
-            try await client.publish(payload, to: topic, retain: true)
-
-            let messages = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1))
+            
+            let messages = try await waitForMessages(client, expectedCount: 1, timeout: .seconds(1)) {
+                try await client.publish(payload, to: topic, retain: true)
+            }
             #expect(messages.first?.payload.string == payload)
             #expect(messages.first?.retain == true)
 

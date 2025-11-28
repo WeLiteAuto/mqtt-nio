@@ -22,22 +22,24 @@ func waitForFuture<T: Sendable>(_ future: EventLoopFuture<T>, timeout: Duration 
     }
 }
 
-func waitForMessages(_ client: MQTTClient, expectedCount: Int = 1, timeout: Duration = .seconds(2)) async throws -> [MQTTMessage] {
-    try await withThrowingTaskGroup(of: [MQTTMessage].self) { group in
+func waitForMessages(
+    _ client: MQTTClient,
+    expectedCount: Int = 1,
+    timeout: Duration = .seconds(2),
+    action: () async throws -> Void
+) async throws -> [MQTTMessage] {
+    let stream = AsyncStream<MQTTMessage> { continuation in
+        let cancellable = client.whenMessage { message in
+            continuation.yield(message)
+        }
+        continuation.onTermination = { @Sendable _ in
+            cancellable.cancel()
+        }
+    }
+    
+    return try await withThrowingTaskGroup(of: [MQTTMessage].self) { group in
         group.addTask {
             var messages: [MQTTMessage] = []
-            let stream = AsyncStream<MQTTMessage> { continuation in
-                let cancellable = client.whenMessage { message in
-                    continuation.yield(message)
-                    if messages.count + 1 >= expectedCount {
-                        continuation.finish()
-                    }
-                }
-                continuation.onTermination = { @Sendable _ in
-                    cancellable.cancel()
-                }
-            }
-
             for await message in stream {
                 messages.append(message)
                 if messages.count >= expectedCount {
@@ -46,12 +48,14 @@ func waitForMessages(_ client: MQTTClient, expectedCount: Int = 1, timeout: Dura
             }
             return messages
         }
-
+        
+        try await action()
+        
         group.addTask {
             try await Task.sleep(for: timeout)
             throw TestTimeoutError()
         }
-
+        
         guard let result = try await group.next() else {
             throw TestTimeoutError()
         }
@@ -59,3 +63,4 @@ func waitForMessages(_ client: MQTTClient, expectedCount: Int = 1, timeout: Dura
         return result
     }
 }
+

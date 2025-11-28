@@ -1,7 +1,7 @@
 import NIO
 import Logging
 
-final class MQTTPacketTypeSerializer: ChannelOutboundHandler {
+final class MQTTPacketTypeSerializer: ChannelOutboundHandler, MQTTSendable {
     
     // MARK: - Vars
     
